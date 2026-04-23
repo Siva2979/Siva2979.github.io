@@ -1,455 +1,678 @@
-<style>
+import { useState, useEffect, useRef, useCallback } from "react";
+
+/* ── PALETTE ─────────────────────────────────────────── */
+const C = {
+  bg:  "#020207", bg2: "#07070e", bg3: "#0c0c18",
+  g:   "#00ff88", c:   "#00d4ff", p:   "#a78bfa",
+  o:   "#ff6b35", r:   "#ff3366", t:   "#b8ffb8",
+  m:   "#4a8a4a", b:   "rgba(0,255,136,0.13)",
+};
+
+/* ── DATA ────────────────────────────────────────────── */
+const NAV = [
+  { id:"home",   label:"home.sys",    badge:null, icon:"M8 1L1 7v8h5v-5h4v5h5V7z" },
+  { id:"proj",   label:"projects.db", badge:"3",  icon:"M2 3h12v2H2zM2 7h12v2H2zM2 11h8v2H2z" },
+  { id:"skills", label:"skills.cfg",  badge:null, icon:"M8 1a7 7 0 100 14A7 7 0 008 1zm0 2a5 5 0 110 10A5 5 0 018 3z" },
+  { id:"certs",  label:"certs.log",   badge:null, icon:"M8 1l2 5h5l-4 3 1 5-4-3-4 3 1-5-4-3h5z" },
+  { id:"edu",    label:"edu.sys",     badge:null, icon:"M8 1L1 5l7 4 7-4M1 9l7 4 7-4" },
+];
+
+const PROJECTS = [
+  {
+    name:"> FOOD_DELIVERY_TIME_PREDICTION",
+    date:"FEB–MAR 2025",
+    desc:["ML model predicting delivery ETA using restaurant location, prep time, distance, ","traffic & weather",". Tackles Swiggy/Zomato logistics — reducing late deliveries and unrealistic estimates."],
+    tags:[["Python","h"],["Scikit-learn","h"],["Regression",""],["Feature Eng.",""],["Geospatial",""]],
+    accent: C.g,
+  },
+  {
+    name:"> BANK_FRAUD_DETECTION.sys",
+    date:"DEC 2024–FEB 2025",
+    desc:["Fraud classification on ","imbalanced banking data"," using Random Forest. Preprocessing, feature engineering, and model comparison (LR, KNN, RF). Evaluated via ","ROC curves"," and feature importance plots."],
+    tags:[["Random Forest","h"],["Pandas","h"],["Logistic Reg.",""],["KNN",""],["NumPy",""]],
+    accent: C.r,
+  },
+  {
+    name:"> TELECOM_CHURN_ANALYSIS.db",
+    date:"OCT–DEC 2024",
+    desc:["Deep EDA comparing churned vs retained customers on tenure, contract & monthly charges. Decision Tree + RF with ","SMOTEEN"," for class imbalance. Achieved ","93% precision"," on unseen data."],
+    tags:[["SMOTEEN","h"],["Scikit-learn","h"],["Seaborn",""],["Matplotlib",""],["EDA",""]],
+    accent: C.c,
+  },
+];
+
+const SKILLS_GROUPS = [
+  { title:"// languages", items:[["Python",90],["SQL",75],["Java",80]] },
+  { title:"// ml / data science", items:[["Scikit-learn",85],["Pandas",88],["NumPy",82]] },
+  { title:"// bi & tools", items:[["Tableau",70],["PowerBI",68],["MySQL",75],["Excel",72]] },
+  { title:"// visualization & dev", items:[["Seaborn",83],["Matplotlib",80],["Git",72],["VS Code",85]] },
+];
+
+const CERTS = [
+  { abbr:"AI", name:"AI Associate",       org:"Salesforce" },
+  { abbr:"ML", name:"AI and ML",          org:"LinkedIn Learning" },
+  { abbr:"DA", name:"Data Analytics",     org:"Tata / Forage" },
+  { abbr:"DS", name:"Data Science",       org:"Oracle University" },
+  { abbr:"DV", name:"Data Visualization", org:"Simplilearn / SkillUP" },
+];
+
+const LOGS = [
+  ["OK",  "portfolio.boot",  "system initialized successfully"],
+  ["INFO","ml_models.db",   "3 projects loaded into memory"],
+  ["OK",  "skills.cfg",     "proficiency matrix compiled — 4 modules"],
+  ["OK",  "certs.log",      "5 credentials verified and indexed"],
+  ["INFO","github.api",     "repository Siva2979 connected"],
+  ["WARN","model_train.py", "random forest fitting in progress"],
+  ["OK",  "sklearn",        "93% precision on unseen test data"],
+  ["INFO","lpu.edu",        "enrollment status: active — cgpa 7.2"],
+  ["OK",  "hackerrank",     "gold badge detected — java 350pts"],
+  ["INFO","pandas",         "dataframe operations nominal"],
+  ["OK",  "leetcode",       "120+ problems solved and indexed"],
+  ["INFO","tableau",        "dashboard rendering complete"],
+];
+
+/* ── UTILS ───────────────────────────────────────────── */
+const pad = n => String(n).padStart(2,"0");
+const rnd = (a,b) => a + Math.floor(Math.random()*(b-a));
+
+/* ── GLOBAL STYLES ───────────────────────────────────── */
+const GLOBAL_CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --bg:#020207;--bg2:#07070e;--bg3:#0c0c18;
-  --g:#00ff88;--c:#00d4ff;--p:#a78bfa;--o:#ff6b35;--r:#ff3366;
-  --t:#b8ffb8;--m:#3a6a3a;--b:rgba(0,255,136,0.13);
-}
-html{height:100%}
-body{
-  background:var(--bg);color:var(--t);
-  font-family:'Share Tech Mono',monospace;
-  height:100vh;min-height:500px;
-  overflow:hidden;display:flex;flex-direction:column;
-}
+html,body,#root{height:100%;background:#020207}
+body{font-family:'Share Tech Mono',monospace;overflow:hidden}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:#07070e}
+::-webkit-scrollbar-thumb{background:#1a4a1a;border-radius:2px}
 
 @keyframes pulse{0%,100%{opacity:.2}50%{opacity:1}}
-@keyframes scan{0%{top:0%}100%{top:100%}}
-@keyframes mfall{0%{transform:translateY(-100%);opacity:0}8%{opacity:1}85%{opacity:.15}100%{transform:translateY(110vh);opacity:0}}
-@keyframes glitch{0%,85%,100%{clip-path:none;transform:none}86%{clip-path:inset(15% 0 70% 0);transform:translateX(-3px)}87%{clip-path:none}89%{clip-path:inset(65% 0 8% 0);transform:translateX(3px)}90%{clip-path:none}}
+@keyframes scan{0%{top:0}100%{top:100%}}
+@keyframes mfall{0%{transform:translateY(-100%);opacity:0}8%{opacity:1}85%{opacity:.12}100%{transform:translateY(110vh);opacity:0}}
+@keyframes glitch{0%,85%,100%{clip-path:none;transform:none}86%{clip-path:inset(15% 0 70% 0);transform:translateX(-4px)}87%{clip-path:none}89%{clip-path:inset(65% 0 8% 0);transform:translateX(4px)}90%{clip-path:none}}
 @keyframes pfill{from{width:0}to{width:var(--w)}}
-@keyframes fin{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
-@keyframes slin{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
-@keyframes borderp{0%,100%{border-color:rgba(0,255,136,0.13)}50%{border-color:rgba(0,255,136,0.35)}}
-@keyframes countup{from{opacity:0}to{opacity:1}}
+@keyframes fadeSlideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes fadeSlideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+@keyframes borderPulse{0%,100%{border-color:rgba(0,255,136,0.13)}50%{border-color:rgba(0,255,136,0.4)}}
+@keyframes countUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 
-.scanl{position:fixed;left:0;right:0;height:1px;background:rgba(0,255,136,0.04);animation:scan 5s linear infinite;z-index:999;pointer-events:none}
-.mbg{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
-.mc{position:absolute;top:0;font-size:13px;color:rgba(0,255,136,0.07);line-height:1.4;animation:mfall linear infinite}
+.glitch-name{animation:glitch 8s infinite}
+.scan-line{position:fixed;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(0,255,136,0.06),transparent);animation:scan 6s linear infinite;z-index:9999;pointer-events:none}
+.matrix-col{position:absolute;top:0;font-size:12px;color:rgba(0,255,136,0.07);line-height:1.4;animation:mfall linear infinite;pointer-events:none}
+.cursor-blink{display:inline-block;animation:blink 1s step-end infinite}
 
-/* TOP BAR */
-.tbar{position:relative;z-index:10;background:var(--bg2);border-bottom:1px solid var(--b);padding:0 18px;display:flex;justify-content:space-between;align-items:center;height:40px;flex-shrink:0}
-.dots{display:flex;gap:7px}
-.dot{width:13px;height:13px;border-radius:50%}
-.dot.r{background:var(--r)}.dot.y{background:#ffcc00}.dot.g{background:var(--g)}
-.ttl{font-family:'Orbitron',monospace;font-size:14px;color:var(--c);letter-spacing:3px;margin-left:12px}
-.tright{display:flex;align-items:center;gap:18px;font-size:13px;color:var(--m)}
-.sdot{width:8px;height:8px;border-radius:50%;background:var(--g);animation:pulse 1.5s infinite;display:inline-block;margin-right:4px}
+.nav-item{
+  display:flex;align-items:center;gap:12px;
+  padding:13px 16px;font-size:14px;cursor:pointer;
+  border-left:3px solid transparent;
+  transition:all .2s ease;user-select:none;
+  color:#4a8a4a;position:relative;
+}
+.nav-item:hover{background:rgba(0,255,136,0.06);color:#00ff88;border-left-color:#00ff88}
+.nav-item.active{background:rgba(0,255,136,0.1);color:#00ff88;border-left-color:#00ff88}
+.nav-item::after{content:'';position:absolute;right:0;top:0;bottom:0;width:0;background:rgba(0,255,136,0.03);transition:width .2s}
+.nav-item:hover::after{width:100%}
 
-/* MAIN LAYOUT — fills all remaining height */
-.layout{display:flex;flex:1;position:relative;z-index:1;min-height:0;overflow:hidden}
+.skill-bar-fill{animation:pfill 1.4s cubic-bezier(.4,0,.2,1) both}
 
-/* SIDEBAR */
-.sb{width:190px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--b);display:flex;flex-direction:column;overflow:hidden}
-.nlbl{font-size:11px;color:var(--m);letter-spacing:2px;padding:10px 14px 6px;text-transform:uppercase}
-.ni{display:flex;align-items:center;gap:10px;padding:11px 14px;font-size:13px;color:var(--m);cursor:pointer;transition:.15s;border-left:3px solid transparent;user-select:none;flex-shrink:0}
-.ni:hover,.ni.on{background:rgba(0,255,136,0.07);color:var(--g);border-left-color:var(--g)}
-.nico{width:18px;height:18px;opacity:.7;flex-shrink:0}
-.nbg{margin-left:auto;font-size:11px;background:rgba(0,255,136,0.1);color:var(--g);padding:2px 7px;border-radius:2px}
+.panel{background:#07070e;border:1px solid rgba(0,255,136,0.13);border-radius:4px;animation:borderPulse 6s infinite}
+.section-enter{animation:fadeSlideUp .25s ease both}
+.log-line{animation:fadeSlideIn .2s ease both}
 
-.sysm{margin-top:auto;padding:10px 13px 12px;border-top:1px solid var(--b)}
-.mr{display:flex;justify-content:space-between;font-size:11px;color:var(--m);margin-bottom:3px}
-.mv{color:var(--g)}
-.mbar{height:3px;background:rgba(0,255,136,0.07);border-radius:2px;overflow:hidden;margin-bottom:6px}
-.mf{height:100%;border-radius:2px;transition:width .6s}
+.stat-card{
+  background:#0c0c18;border:1px solid rgba(0,255,136,0.13);border-radius:4px;
+  padding:14px 8px;text-align:center;position:relative;overflow:hidden;
+  transition:border-color .2s,transform .2s;
+}
+.stat-card:hover{border-color:rgba(0,255,136,0.35);transform:translateY(-2px)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#00ff88,transparent);opacity:.8}
 
-/* CONTENT AREA */
-.content{flex:1;display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden}
+.project-card{
+  background:#0c0c18;border:1px solid rgba(0,255,136,0.1);border-radius:4px;
+  padding:16px;border-left:3px solid transparent;
+  transition:all .2s ease;flex:1;display:flex;flex-direction:column;justify-content:space-between;
+}
+.project-card:hover{background:rgba(0,255,136,0.03)}
 
-/* SECTIONS — each fills full content area */
-.sec{display:none;flex:1;flex-direction:column;padding:11px 13px;gap:9px;min-height:0;overflow:hidden;animation:fin .2s ease}
-.sec.on{display:flex}
+.cert-row{
+  display:flex;align-items:center;gap:12px;padding:11px 12px;
+  background:#0c0c18;border:1px solid rgba(0,255,136,0.13);border-radius:4px;
+  transition:border-color .2s;flex:1;
+}
+.cert-row:hover{border-color:rgba(0,255,136,0.3)}
 
-/* PANEL */
-.pnl{background:var(--bg2);border:1px solid var(--b);border-radius:3px;display:flex;flex-direction:column;flex-shrink:0;animation:borderp 6s infinite}
-.pnl.grow{flex:1;min-height:0}
-.ph{display:flex;align-items:center;gap:8px;padding:7px 13px;border-bottom:1px solid var(--b);font-size:11px;color:var(--c);letter-spacing:2px;text-transform:uppercase;flex-shrink:0}
-.pb{padding:11px 13px;flex:1;overflow:hidden;min-height:0}
+.edu-card{
+  background:#0c0c18;border:1px solid rgba(0,255,136,0.13);border-radius:4px;
+  padding:14px 16px;display:flex;flex-direction:column;justify-content:space-between;
+  border-left:3px solid;transition:transform .2s;
+}
+.edu-card:hover{transform:translateX(2px)}
+
+.skill-module{
+  background:#0c0c18;border:1px solid rgba(0,255,136,0.13);
+  border-radius:4px;padding:14px;display:flex;flex-direction:column;
+  transition:border-color .2s;
+}
+.skill-module:hover{border-color:rgba(0,255,136,0.25)}
+
+.contact-link{
+  display:flex;align-items:center;gap:9px;font-size:13px;
+  color:#4a8a4a;padding:6px 0;transition:color .15s;
+}
+.contact-link a{color:#00d4ff;text-decoration:none;transition:color .15s}
+.contact-link a:hover{color:#00ff88}
+.contact-link:hover{color:#00ff88}
+`;
+
+/* ── COMPONENTS ──────────────────────────────────────── */
+
+function MatrixBg() {
+  const chars = "アイカキ01クケ10コサシスセタチ";
+  const cols = Array.from({length:10},(_,i) => ({
+    left: `${i*10+2}%`,
+    dur:  `${5+Math.random()*7}s`,
+    delay:`${Math.random()*6}s`,
+    text: Array.from({length:28},()=>chars[Math.floor(Math.random()*chars.length)]).join("\n"),
+  }));
+  return (
+    <div style={{position:"fixed",inset:0,overflow:"hidden",pointerEvents:"none",zIndex:0}}>
+      {cols.map((col,i) => (
+        <div key={i} className="matrix-col" style={{
+          left:col.left, animationDuration:col.dur, animationDelay:col.delay,
+          whiteSpace:"pre", lineHeight:"1.5",
+        }}>{col.text}</div>
+      ))}
+    </div>
+  );
+}
+
+function TopBar({cpu, time, uptime}) {
+  return (
+    <div style={{
+      position:"relative",zIndex:10,background:C.bg2,
+      borderBottom:`1px solid ${C.b}`,padding:"0 20px",
+      display:"flex",justifyContent:"space-between",alignItems:"center",
+      height:44,flexShrink:0,
+    }}>
+      <div style={{display:"flex",alignItems:"center",gap:14}}>
+        <div style={{display:"flex",gap:8}}>
+          {[C.r,"#ffcc00",C.g].map((col,i)=>(
+            <div key={i} style={{width:14,height:14,borderRadius:"50%",background:col,
+              boxShadow:`0 0 6px ${col}55`}}/>
+          ))}
+        </div>
+        <span style={{fontFamily:"Orbitron,monospace",fontSize:15,color:C.c,letterSpacing:3}}>
+          KALYAN_OS v2.0
+        </span>
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:20,fontSize:13,color:C.m}}>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <span style={{width:8,height:8,borderRadius:"50%",background:C.g,
+            display:"inline-block",animation:"pulse 1.5s infinite",
+            boxShadow:`0 0 6px ${C.g}`}}/>
+          <span style={{color:C.g}}>ONLINE</span>
+        </div>
+        <div style={{color:C.g,fontFamily:"Orbitron,monospace",fontSize:13}}>{time}</div>
+        <div>UPTIME:<span style={{color:C.g,marginLeft:6}}>{uptime}</span></div>
+        <div>CPU:<span style={{color:C.g,marginLeft:6}}>{cpu}%</span></div>
+      </div>
+    </div>
+  );
+}
+
+function Sidebar({active, setActive, cpu, ram, net}) {
+  return (
+    <div style={{
+      width:200,flexShrink:0,background:C.bg2,
+      borderRight:`1px solid ${C.b}`,display:"flex",flexDirection:"column",overflow:"hidden",
+    }}>
+      <div style={{fontSize:11,color:C.m,letterSpacing:2,padding:"12px 16px 6px",textTransform:"uppercase"}}>
+        // navigate
+      </div>
+      {NAV.map(n => (
+        <div key={n.id} className={`nav-item${active===n.id?" active":""}`}
+          onClick={()=>setActive(n.id)}>
+          <svg width={20} height={20} viewBox="0 0 16 16" fill="currentColor" style={{opacity:.75,flexShrink:0}}>
+            <path d={n.icon}/>
+          </svg>
+          <span style={{flex:1}}>{n.label}</span>
+          {n.badge && (
+            <span style={{fontSize:11,background:"rgba(0,255,136,0.12)",color:C.g,
+              padding:"2px 7px",borderRadius:3}}>
+              {n.badge}
+            </span>
+          )}
+        </div>
+      ))}
+
+      {/* system meters */}
+      <div style={{marginTop:"auto",padding:"12px 14px 14px",borderTop:`1px solid ${C.b}`}}>
+        {[
+          {label:"CPU",val:cpu,color:C.g},
+          {label:"RAM",val:ram,color:C.c},
+          {label:"NET",val:net,color:C.p},
+        ].map(m=>(
+          <div key={m.label} style={{marginBottom:8}}>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:C.m,marginBottom:3}}>
+              <span>{m.label}</span><span style={{color:m.color}}>{m.val}%</span>
+            </div>
+            <div style={{height:3,background:"rgba(0,255,136,0.07)",borderRadius:2,overflow:"hidden"}}>
+              <div style={{height:"100%",width:`${m.val}%`,background:m.color,borderRadius:2,
+                transition:"width .8s ease",boxShadow:`0 0 6px ${m.color}44`}}/>
+            </div>
+          </div>
+        ))}
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:C.m,marginTop:6}}>
+          <span>BUILD</span><span style={{color:C.g}}>2025.04.23</span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /* ── HOME ── */
-.hgrid{display:grid;grid-template-columns:1.1fr 1fr;gap:12px;align-items:start}
-.bigname{font-family:'Orbitron',monospace;font-size:28px;font-weight:900;color:var(--g);letter-spacing:1px;line-height:1;animation:glitch 10s infinite}
-.bsub{font-size:13px;color:var(--c);margin-top:5px;letter-spacing:.5px}
-.bdesc{font-size:13px;color:var(--m);margin-top:8px;line-height:1.7;max-width:360px}
-.cl{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--m);margin-bottom:6px}
-.cl a{color:var(--c);text-decoration:none}.cl a:hover{color:var(--g)}
-.ci{width:15px;height:15px;opacity:.6;flex-shrink:0}
-.stats4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;flex-shrink:0}
-.sc{background:var(--bg3);border:1px solid var(--b);border-radius:3px;padding:10px 6px;text-align:center;position:relative;overflow:hidden}
-.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--g);opacity:.7}
-.sn{font-family:'Orbitron',monospace;font-size:22px;color:var(--g);font-weight:700;line-height:1.1}
-.sl{font-size:11px;color:var(--m);margin-top:3px;letter-spacing:.5px;text-transform:uppercase}
-.logbox{overflow:hidden;font-size:12px;line-height:2;color:var(--m);height:100%}
-.ll{animation:slin .2s ease both}
-.lts{color:var(--p);margin-right:6px}
-.lok{color:var(--g)}.linf{color:var(--c)}.lwrn{color:var(--o)}
+function HomeSection({logs}) {
+  const stats = [
+    {id:"s1",target:3,  suffix:"",  label:"ML Projects"},
+    {id:"s2",target:120,suffix:"+", label:"LeetCode"},
+    {id:"s3",target:93, suffix:"%", label:"Precision"},
+    {id:"s4",target:5,  suffix:"",  label:"Certs"},
+  ];
+  const [counts,setCounts] = useState(stats.map(()=>0));
+  useEffect(()=>{
+    const timers = stats.map((s,i)=>{
+      let v=0; const step=s.target/50;
+      return setInterval(()=>{
+        v+=step; if(v>=s.target) v=s.target;
+        setCounts(c=>{const n=[...c];n[i]=Math.floor(v);return n;});
+        if(v>=s.target) clearInterval(timers?.[i]);
+      },18);
+    });
+    return ()=>timers.forEach(clearInterval);
+  },[]);
+
+  const contacts = [
+    {icon:"M2 4h12v8H2zm0 0l6 5 6-5", href:"mailto:kalyannaidub348@gmail.com", label:"kalyannaidub348@gmail.com"},
+    {icon:"M3 2h2l1 4-1.5 1.5a9 9 0 004 4L10 10l4 1v2a1 1 0 01-1 1A13 13 0 012 3a1 1 0 011-1z", href:null, label:"+91 93982 93156"},
+    {icon:"M1 1h14v14H1zM5 6v6M5 4v.5M8 6v6M8 6a3 3 0 016 0v6", href:"https://linkedin.com/in/sivakalyan2979", label:"linkedin/sivakalyan2979"},
+    {icon:"M8 0C3.6 0 0 3.6 0 8c0 3.5 2.3 6.5 5.5 7.6.4.1.5-.2.5-.4v-1.3C3.7 14.3 3.2 13 3.2 13c-.4-.9-.9-1.1-.9-1.1-.7-.5.1-.5.1-.5.8.1 1.2.8 1.2.8.7 1.2 1.8.8 2.2.6.1-.5.3-.8.5-1C4.7 11.6 3 11 3 8.3c0-.8.3-1.4.8-1.9-.1-.2-.3-.9.1-1.9 0 0 .6-.2 2.1.8a7 7 0 013.8 0c1.4-1 2.1-.8 2.1-.8.4 1 .2 1.7.1 1.9.5.5.7 1.1.7 1.9 0 2.7-1.6 3.3-3.2 3.5.3.2.5.7.5 1.4v2c0 .2.1.5.5.4C13.7 14.5 16 11.5 16 8c0-4.4-3.6-8-8-8z", href:"https://github.com/Siva2979", label:"github/Siva2979"},
+  ];
+
+  return (
+    <div className="section-enter" style={{flex:1,display:"flex",flexDirection:"column",gap:10,padding:"12px 14px",minHeight:0,overflow:"hidden"}}>
+      {/* profile card */}
+      <div className="panel" style={{flexShrink:0}}>
+        <div style={{padding:"8px 14px",borderBottom:`1px solid ${C.b}`,fontSize:11,color:C.c,letterSpacing:2,textTransform:"uppercase"}}>
+          // profile_node :: active
+        </div>
+        <div style={{padding:"14px 16px"}}>
+          <div style={{display:"grid",gridTemplateColumns:"1.2fr 1fr",gap:16,alignItems:"start"}}>
+            <div>
+              <div className="glitch-name" style={{
+                fontFamily:"Orbitron,monospace",fontSize:32,fontWeight:900,
+                color:C.g,letterSpacing:2,lineHeight:1,
+                textShadow:`0 0 20px ${C.g}44`,
+              }}>KALYAN<span className="cursor-blink" style={{color:C.c}}>_</span></div>
+              <div style={{fontSize:13,color:C.c,marginTop:6,letterSpacing:.5}}>
+                &gt; DATA_SCIENTIST :: ML_ENGINEER :: CSE_STUDENT
+              </div>
+              <div style={{fontSize:13,color:C.m,marginTop:10,lineHeight:1.75,maxWidth:380}}>
+                Building predictive ML systems that solve real-world problems — fraud detection,
+                churn prediction &amp; delivery optimization. B.Tech CSE @ LPU Punjab. Open to opportunities.
+              </div>
+            </div>
+            <div>
+              {contacts.map((c,i)=>(
+                <div key={i} className="contact-link">
+                  <svg width={16} height={16} viewBox="0 0 16 16" fill="currentColor" style={{opacity:.6,flexShrink:0}}>
+                    <path d={c.icon}/>
+                  </svg>
+                  {c.href
+                    ? <a href={c.href} target={c.href.startsWith("http")?"_blank":undefined}>{c.label}</a>
+                    : <span style={{color:C.t}}>{c.label}</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* stat cards */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,flexShrink:0}}>
+        {stats.map((s,i)=>(
+          <div key={s.id} className="stat-card">
+            <div style={{fontFamily:"Orbitron,monospace",fontSize:26,color:C.g,fontWeight:700,
+              textShadow:`0 0 16px ${C.g}66`}}>
+              {counts[i]}{s.suffix}
+            </div>
+            <div style={{fontSize:11,color:C.m,marginTop:4,letterSpacing:.5,textTransform:"uppercase"}}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* live log */}
+      <div className="panel" style={{flex:1,minHeight:0,display:"flex",flexDirection:"column"}}>
+        <div style={{padding:"8px 14px",borderBottom:`1px solid ${C.b}`,fontSize:11,color:C.c,letterSpacing:2,textTransform:"uppercase",flexShrink:0}}>
+          // system_log :: live_feed
+        </div>
+        <div style={{flex:1,overflow:"hidden",padding:"10px 14px",display:"flex",flexDirection:"column",gap:2,justifyContent:"flex-end"}}>
+          {logs.map((l,i)=>(
+            <div key={i} className="log-line" style={{fontSize:12,lineHeight:1.9,color:C.m,animationDelay:`${i*0.05}s`}}>
+              <span style={{color:C.p,marginRight:8}}>[{l.ts}]</span>
+              <span style={{color:l.type==="OK"?C.g:l.type==="WARN"?C.o:C.c,marginRight:6}}>[{l.type}]</span>
+              <span>{l.module}</span>
+              <span style={{color:"#2a5a2a"}}> :: </span>
+              <span>{l.msg}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /* ── PROJECTS ── */
-.plist{display:flex;flex-direction:column;gap:9px;flex:1;min-height:0}
-.pc{background:var(--bg3);border:1px solid rgba(0,255,136,0.1);border-radius:3px;padding:12px 13px;border-left:3px solid transparent;transition:.15s;flex:1;display:flex;flex-direction:column;justify-content:space-between}
-.pc:hover{border-left-color:var(--g);background:rgba(0,255,136,0.025)}
-.prow{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
-.pn{font-size:13px;color:var(--g);font-weight:700}
-.pd{font-size:11px;color:var(--m)}
-.ptxt{font-size:12px;color:var(--m);line-height:1.65;margin-bottom:8px}
-.ptxt em{color:var(--c);font-style:normal}
-.tags{display:flex;flex-wrap:wrap;gap:5px}
-.tg{font-size:11px;padding:2px 8px;border:1px solid rgba(0,255,136,0.2);color:var(--g);border-radius:2px}
-.tg.h{border-color:rgba(0,212,255,0.3);color:var(--c);background:rgba(0,212,255,0.04)}
+function ProjectsSection() {
+  return (
+    <div className="section-enter" style={{flex:1,display:"flex",flexDirection:"column",padding:"12px 14px",gap:10,minHeight:0}}>
+      <div className="panel" style={{flex:1,minHeight:0,display:"flex",flexDirection:"column"}}>
+        <div style={{padding:"8px 14px",borderBottom:`1px solid ${C.b}`,fontSize:11,color:C.c,letterSpacing:2,textTransform:"uppercase",flexShrink:0}}>
+          // projects.db :: 3 records loaded
+        </div>
+        <div style={{flex:1,padding:"12px 14px",display:"flex",flexDirection:"column",gap:10,minHeight:0,overflow:"auto"}}>
+          {PROJECTS.map((p,i)=>(
+            <div key={i} className="project-card" style={{borderLeftColor:p.accent,
+              animationDelay:`${i*0.08}s`}}>
+              <div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
+                  <span style={{fontSize:14,color:p.accent,fontWeight:700,textShadow:`0 0 10px ${p.accent}44`}}>{p.name}</span>
+                  <span style={{fontSize:12,color:C.m}}>{p.date}</span>
+                </div>
+                <div style={{fontSize:13,color:C.m,lineHeight:1.7,marginBottom:10}}>
+                  {p.desc.map((d,j)=>j%2===0
+                    ? <span key={j}>{d}</span>
+                    : <em key={j} style={{color:C.c,fontStyle:"normal"}}>{d}</em>
+                  )}
+                </div>
+              </div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                {p.tags.map(([t,cls],j)=>(
+                  <span key={j} style={{
+                    fontSize:11,padding:"3px 9px",borderRadius:3,
+                    border:`1px solid ${cls==="h"?"rgba(0,212,255,0.35)":"rgba(0,255,136,0.25)"}`,
+                    color:cls==="h"?C.c:C.g,
+                    background:cls==="h"?"rgba(0,212,255,0.05)":"transparent",
+                  }}>{t}</span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /* ── SKILLS ── */
-.skgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;flex:1;min-height:0}
-.sm{background:var(--bg3);border:1px solid var(--b);border-radius:3px;padding:13px;display:flex;flex-direction:column}
-.smt{font-size:11px;color:var(--o);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px}
-.sbr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.sbn{font-size:12px;color:var(--m);width:82px;flex-shrink:0}
-.sbar{flex:1;height:5px;background:rgba(0,255,136,0.07);border-radius:2px;overflow:hidden}
-.sf{height:100%;border-radius:2px;background:var(--g);animation:pfill 1.3s ease both}
-.sp{font-size:11px;color:var(--g);width:30px;text-align:right}
+function SkillBar({name, pct, delay}) {
+  const [w, setW] = useState(0);
+  useEffect(()=>{ const t=setTimeout(()=>setW(pct),100+delay); return()=>clearTimeout(t); },[pct,delay]);
+  return (
+    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+      <span style={{fontSize:13,color:C.m,width:90,flexShrink:0}}>{name}</span>
+      <div style={{flex:1,height:5,background:"rgba(0,255,136,0.08)",borderRadius:3,overflow:"hidden"}}>
+        <div style={{height:"100%",width:`${w}%`,background:`linear-gradient(90deg,${C.g},${C.c})`,
+          borderRadius:3,transition:"width 1.2s cubic-bezier(.4,0,.2,1)",
+          boxShadow:`0 0 8px ${C.g}55`}}/>
+      </div>
+      <span style={{fontSize:12,color:C.g,width:32,textAlign:"right"}}>{pct}%</span>
+    </div>
+  );
+}
+
+function SkillsSection() {
+  return (
+    <div className="section-enter" style={{flex:1,display:"flex",flexDirection:"column",padding:"12px 14px",gap:10,minHeight:0}}>
+      <div className="panel" style={{flex:1,minHeight:0,display:"flex",flexDirection:"column"}}>
+        <div style={{padding:"8px 14px",borderBottom:`1px solid ${C.b}`,fontSize:11,color:C.c,letterSpacing:2,textTransform:"uppercase",flexShrink:0}}>
+          // skills.cfg :: proficiency_matrix
+        </div>
+        <div style={{flex:1,padding:"12px 14px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,minHeight:0,overflow:"auto"}}>
+          {SKILLS_GROUPS.map((g,gi)=>(
+            <div key={gi} className="skill-module">
+              <div style={{fontSize:12,color:C.o,letterSpacing:1,textTransform:"uppercase",marginBottom:14,
+                borderBottom:`1px solid rgba(255,107,53,0.2)`,paddingBottom:6}}>
+                {g.title}
+              </div>
+              {g.items.map(([name,pct],i)=>(
+                <SkillBar key={name} name={name} pct={pct} delay={gi*100+i*80}/>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /* ── CERTS ── */
-.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;flex:1;min-height:0}
-.ccol{display:flex;flex-direction:column;gap:8px}
-.clbl{font-size:11px;color:var(--o);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px}
-.cr{display:flex;align-items:center;gap:10px;padding:9px 10px;background:var(--bg3);border:1px solid var(--b);border-radius:3px;flex:1}
-.cico{width:34px;height:34px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;background:rgba(0,255,136,0.06);color:var(--g);border:1px solid rgba(0,255,136,0.18);flex-shrink:0}
-.cname{font-size:13px;color:var(--t)}.corg{font-size:11px;color:var(--m);margin-top:2px}
-.cbadge{margin-left:auto;font-size:10px;padding:2px 7px;background:rgba(0,255,136,0.06);color:var(--g);border:1px solid rgba(0,255,136,0.18);border-radius:2px}
-.ac{background:var(--bg3);border:1px solid var(--b);border-radius:3px;padding:12px;text-align:center;flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center}
-.at{font-size:13px;font-weight:700;margin-bottom:4px}
-.as2{font-size:12px;color:var(--m)}
-.trainbox{background:var(--bg3);border:1px solid var(--b);border-radius:3px;padding:12px;flex:1}
-.trt{font-size:11px;color:var(--o);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
-.trline{font-size:12px;color:var(--m);line-height:1.85}
-.trline em{color:var(--c);font-style:normal}
+function CertsSection() {
+  const achievements = [
+    {color:C.g, title:"HACKERRANK :: GOLD", sub:"Java — 350+ points"},
+    {color:C.c, title:"LEETCODE :: 120+",   sub:"Problems solved in Java"},
+  ];
+  return (
+    <div className="section-enter" style={{flex:1,display:"flex",flexDirection:"column",padding:"12px 14px",gap:10,minHeight:0}}>
+      <div className="panel" style={{flex:1,minHeight:0,display:"flex",flexDirection:"column"}}>
+        <div style={{padding:"8px 14px",borderBottom:`1px solid ${C.b}`,fontSize:11,color:C.c,letterSpacing:2,textTransform:"uppercase",flexShrink:0}}>
+          // certs.log + achievements.sys + training.db
+        </div>
+        <div style={{flex:1,padding:"12px 14px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,minHeight:0,overflow:"auto"}}>
+          {/* certifications */}
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            <div style={{fontSize:12,color:C.o,letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>// certifications</div>
+            {CERTS.map((cert,i)=>(
+              <div key={i} className="cert-row" style={{animationDelay:`${i*0.06}s`}}>
+                <div style={{
+                  width:38,height:38,borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center",
+                  fontSize:12,fontWeight:700,background:"rgba(0,255,136,0.06)",color:C.g,
+                  border:"1px solid rgba(0,255,136,0.2)",flexShrink:0,
+                  boxShadow:`inset 0 0 8px rgba(0,255,136,0.06)`,
+                }}>{cert.abbr}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,color:C.t}}>{cert.name}</div>
+                  <div style={{fontSize:11,color:C.m,marginTop:2}}>{cert.org}</div>
+                </div>
+                <span style={{fontSize:10,padding:"2px 8px",background:"rgba(0,255,136,0.06)",color:C.g,
+                  border:"1px solid rgba(0,255,136,0.2)",borderRadius:3}}>VERIFIED</span>
+              </div>
+            ))}
+          </div>
+
+          {/* right col */}
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            <div style={{fontSize:12,color:C.o,letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>// achievements</div>
+            {achievements.map((a,i)=>(
+              <div key={i} style={{
+                background:C.bg3,border:`1px solid rgba(0,255,136,0.13)`,borderRadius:4,
+                padding:14,textAlign:"center",display:"flex",flexDirection:"column",
+                justifyContent:"center",alignItems:"center",gap:6,flex:1,
+              }}>
+                <div style={{fontSize:14,fontWeight:700,color:a.color,textShadow:`0 0 12px ${a.color}55`}}>{a.title}</div>
+                <div style={{fontSize:12,color:C.m}}>{a.sub}</div>
+              </div>
+            ))}
+
+            <div style={{fontSize:12,color:C.o,letterSpacing:1,textTransform:"uppercase",marginTop:4}}>// training :: board_infinity</div>
+            <div style={{background:C.bg3,border:`1px solid rgba(0,255,136,0.13)`,borderRadius:4,padding:14,flex:1}}>
+              <div style={{fontSize:12,color:C.o,letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>
+                Data Science Trainee — Jun–Jul 2024
+              </div>
+              {[
+                ["Covered","Python, EDA, ML, Data Visualization"],
+                ["Tools","SQL data extraction, Tableau dashboards"],
+                ["Focus","Statistical analysis, predictive modeling"],
+                ["Output","Actionable insights from large datasets"],
+              ].map(([k,v])=>(
+                <div key={k} style={{fontSize:13,color:C.m,lineHeight:1.9}}>
+                  {k}: <em style={{color:C.c,fontStyle:"normal"}}>{v}</em>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /* ── EDU ── */
-.egrid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr 1fr;gap:9px;flex:1;min-height:0}
-.ecard{background:var(--bg3);border:1px solid var(--b);border-radius:3px;padding:13px 14px;display:flex;flex-direction:column;justify-content:space-between;border-left:3px solid var(--g)}
-.ecard.b{border-left-color:var(--c)}
-.ecard.c{border-left-color:var(--o)}
-.ecard.d{border-left-color:var(--p);grid-column:span 2}
-.einst{font-size:13px;color:var(--g);font-weight:700;margin-bottom:4px}
-.ecard.b .einst{color:var(--c)}.ecard.c .einst{color:var(--o)}.ecard.d .einst{color:var(--p)}
-.edeg{font-size:12px;color:var(--m);line-height:1.6}
-.eyr{font-size:11px;color:var(--c);margin-top:6px;display:flex;align-items:center;gap:9px}
-.etag{font-size:10px;padding:2px 8px;background:rgba(0,255,136,0.08);color:var(--g);border:1px solid rgba(0,255,136,0.2);border-radius:2px}
-.skillpills{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
-.sp2{font-size:12px;padding:3px 10px;border:1px solid rgba(167,139,250,0.3);color:var(--p);border-radius:2px}
+function EduSection() {
+  const schools = [
+    {span:2, color:C.g, name:"Lovely Professional University — Jalandhar, Punjab",
+     deg:"Bachelor of Technology :: Computer Science & Engineering · CGPA 7.2 / 10.0 · Full-time enrollment",
+     yr:"AUG 2022 — PRESENT", tag:"ACTIVE"},
+    {span:1, color:C.c, name:"Sri Chaitanya Junior College",
+     deg:"Class 12 — Intermediate · Score 81%\nGuntur, Andhra Pradesh",
+     yr:"JUN 2020 — APR 2022", tag:null},
+    {span:1, color:C.o, name:"ST. Ann's School — Ponnur",
+     deg:"Class 10 — ICSE Board\nGuntur, Andhra Pradesh",
+     yr:"UNTIL APR 2022", tag:null},
+  ];
+  const softSkills = ["Adaptability","Problem-Solving","Time Management","Convincing Skills","Team Collaboration","Analytical Thinking"];
 
-/* FOOTER */
-.fbar{position:relative;z-index:10;background:var(--bg2);border-top:1px solid var(--b);padding:0 18px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--m);height:28px;flex-shrink:0}
-.fbar span{color:var(--g)}
-</style>
-
-<div class="scanl"></div>
-<div class="mbg" id="mbg"></div>
-
-<div class="tbar">
-  <div style="display:flex;align-items:center;gap:10px">
-    <div class="dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
-    <div class="ttl">KALYAN_OS v2.0</div>
-  </div>
-  <div class="tright">
-    <div><span class="sdot"></span>ONLINE</div>
-    <div id="clk" style="color:var(--g)">00:00:00</div>
-    <div>UPTIME:<span style="color:var(--g);margin-left:4px" id="upt">00:00</span></div>
-    <div>CPU:<span style="color:var(--g);margin-left:4px" id="ctop">--</span></div>
-  </div>
-</div>
-
-<div class="layout">
-  <div class="sb">
-    <div class="nlbl">// navigate</div>
-    <div class="ni on" data-sec="home">
-      <svg class="nico" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1L1 7v8h5v-5h4v5h5V7z"/></svg>home.sys
-    </div>
-    <div class="ni" data-sec="proj">
-      <svg class="nico" viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v2H2zM2 7h12v2H2zM2 11h8v2H2z"/></svg>projects.db<span class="nbg">3</span>
-    </div>
-    <div class="ni" data-sec="skills">
-      <svg class="nico" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 2a5 5 0 110 10A5 5 0 018 3z"/></svg>skills.cfg
-    </div>
-    <div class="ni" data-sec="certs">
-      <svg class="nico" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l2 5h5l-4 3 1 5-4-3-4 3 1-5-4-3h5z"/></svg>certs.log
-    </div>
-    <div class="ni" data-sec="edu">
-      <svg class="nico" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1L1 5l7 4 7-4M1 9l7 4 7-4"/></svg>edu.sys
-    </div>
-
-    <div class="sysm">
-      <div class="mr"><span>CPU</span><span class="mv" id="cv2">72%</span></div>
-      <div class="mbar"><div class="mf" id="cb" style="width:72%;background:var(--g)"></div></div>
-      <div class="mr"><span>RAM</span><span class="mv" id="rv" style="color:var(--c)">58%</span></div>
-      <div class="mbar"><div class="mf" id="rb" style="width:58%;background:var(--c)"></div></div>
-      <div class="mr"><span>NET</span><span class="mv" id="nv" style="color:var(--p)">84%</span></div>
-      <div class="mbar"><div class="mf" id="nb" style="width:84%;background:var(--p)"></div></div>
-      <div class="mr" style="margin-top:4px"><span>BUILD</span><span class="mv">2025.04.23</span></div>
-    </div>
-  </div>
-
-  <div class="content">
-
-    <!-- HOME -->
-    <div class="sec on" id="sec-home">
-      <div class="pnl">
-        <div class="ph">// profile_node :: active</div>
-        <div class="pb">
-          <div class="hgrid">
-            <div>
-              <div class="bigname">KALYAN</div>
-              <div class="bsub">> DATA_SCIENTIST :: ML_ENGINEER :: CSE_STUDENT</div>
-              <div class="bdesc">Building predictive ML systems that solve real-world problems — fraud detection, churn prediction & delivery optimization. B.Tech CSE @ LPU Punjab. Open to opportunities.</div>
-            </div>
-            <div>
-              <div class="cl"><svg class="ci" viewBox="0 0 16 16" fill="currentColor"><path d="M2 4h12v8H2zm0 0l6 5 6-5"/></svg><a href="mailto:kalyannaidub348@gmail.com">kalyannaidub348@gmail.com</a></div>
-              <div class="cl"><svg class="ci" viewBox="0 0 16 16" fill="currentColor"><path d="M3 2h2l1 4-1.5 1.5a9 9 0 004 4L10 10l4 1v2a1 1 0 01-1 1A13 13 0 012 3a1 1 0 011-1z"/></svg>+91 93982 93156</div>
-              <div class="cl"><svg class="ci" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="14" height="14" rx="2"/><path d="M5 6v6M5 4v.5M8 6v6M8 6a3 3 0 016 0v6"/></svg><a href="https://linkedin.com/in/sivakalyan2979" target="_blank">linkedin/sivakalyan2979</a></div>
-              <div class="cl"><svg class="ci" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.6 0 0 3.6 0 8c0 3.5 2.3 6.5 5.5 7.6.4.1.5-.2.5-.4v-1.3C3.7 14.3 3.2 13 3.2 13c-.4-.9-.9-1.1-.9-1.1-.7-.5.1-.5.1-.5.8.1 1.2.8 1.2.8.7 1.2 1.8.8 2.2.6.1-.5.3-.8.5-1C4.7 11.6 3 11 3 8.3c0-.8.3-1.4.8-1.9-.1-.2-.3-.9.1-1.9 0 0 .6-.2 2.1.8a7 7 0 013.8 0c1.4-1 2.1-.8 2.1-.8.4 1 .2 1.7.1 1.9.5.5.7 1.1.7 1.9 0 2.7-1.6 3.3-3.2 3.5.3.2.5.7.5 1.4v2c0 .2.1.5.5.4C13.7 14.5 16 11.5 16 8c0-4.4-3.6-8-8-8z"/></svg><a href="https://github.com/Siva2979" target="_blank">github/Siva2979</a></div>
-            </div>
-          </div>
+  return (
+    <div className="section-enter" style={{flex:1,display:"flex",flexDirection:"column",padding:"12px 14px",gap:10,minHeight:0}}>
+      <div className="panel" style={{flex:1,minHeight:0,display:"flex",flexDirection:"column"}}>
+        <div style={{padding:"8px 14px",borderBottom:`1px solid ${C.b}`,fontSize:11,color:C.c,letterSpacing:2,textTransform:"uppercase",flexShrink:0}}>
+          // edu.sys :: academic_history
         </div>
-      </div>
-      <div class="stats4">
-        <div class="sc"><div class="sn" id="s1">0</div><div class="sl">ML Projects</div></div>
-        <div class="sc"><div class="sn" id="s2">0</div><div class="sl">LeetCode+</div></div>
-        <div class="sc"><div class="sn" id="s3">0</div><div class="sl">% Precision</div></div>
-        <div class="sc"><div class="sn" id="s4">0</div><div class="sl">Certifications</div></div>
-      </div>
-      <div class="pnl grow">
-        <div class="ph">// system_log :: live_feed</div>
-        <div class="pb" style="display:flex;flex-direction:column">
-          <div class="logbox" id="lf"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- PROJECTS -->
-    <div class="sec" id="sec-proj">
-      <div class="pnl grow">
-        <div class="ph">// projects.db :: 3 records loaded</div>
-        <div class="pb" style="display:flex;flex-direction:column;gap:7px">
-          <div class="plist">
-            <div class="pc">
+        <div style={{flex:1,padding:"12px 14px",display:"grid",gridTemplateColumns:"1fr 1fr",
+          gridTemplateRows:"auto auto auto",gap:10,minHeight:0,overflow:"auto"}}>
+          {schools.map((s,i)=>(
+            <div key={i} className="edu-card" style={{borderLeftColor:s.color,
+              gridColumn:s.span===2?"span 2":"auto",
+              animationDelay:`${i*0.08}s`,
+            }}>
               <div>
-                <div class="prow"><span class="pn">> FOOD_DELIVERY_TIME_PREDICTION</span><span class="pd">FEB–MAR 2025</span></div>
-                <div class="ptxt">ML model predicting delivery ETA using restaurant location, prep time, distance, <em>traffic & weather</em>. Tackles Swiggy/Zomato logistics — reducing late deliveries and unrealistic estimates. Enhanced efficiency via improved time estimation accuracy.</div>
+                <div style={{fontSize:14,color:s.color,fontWeight:700,marginBottom:5,
+                  textShadow:`0 0 10px ${s.color}44`}}>{s.name}</div>
+                <div style={{fontSize:13,color:C.m,lineHeight:1.6,whiteSpace:"pre-line"}}>{s.deg}</div>
               </div>
-              <div class="tags"><span class="tg h">Python</span><span class="tg h">Scikit-learn</span><span class="tg">Regression</span><span class="tg">Feature Eng.</span><span class="tg">Geospatial</span></div>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginTop:8,fontSize:12,color:C.c}}>
+                {s.yr}
+                {s.tag && <span style={{fontSize:10,padding:"2px 8px",background:"rgba(0,255,136,0.08)",
+                  color:C.g,border:"1px solid rgba(0,255,136,0.25)",borderRadius:3}}>{s.tag}</span>}
+              </div>
             </div>
-            <div class="pc">
-              <div>
-                <div class="prow"><span class="pn">> BANK_FRAUD_DETECTION.sys</span><span class="pd">DEC 2024–FEB 2025</span></div>
-                <div class="ptxt">Fraud classification on <em>imbalanced banking data</em> using Random Forest. Preprocessing, feature engineering, and model comparison (LR, KNN, RF). Evaluated via <em>ROC curves</em> and feature importance plots.</div>
-              </div>
-              <div class="tags"><span class="tg h">Random Forest</span><span class="tg h">Pandas</span><span class="tg">Logistic Reg.</span><span class="tg">KNN</span><span class="tg">NumPy</span></div>
-            </div>
-            <div class="pc">
-              <div>
-                <div class="prow"><span class="pn">> TELECOM_CHURN_ANALYSIS.db</span><span class="pd">OCT–DEC 2024</span></div>
-                <div class="ptxt">Deep EDA comparing churned vs retained customers on tenure, contract & monthly charges. Decision Tree + RF with <em>SMOTEEN</em> for class imbalance. Achieved <em>93% precision</em> on unseen data.</div>
-              </div>
-              <div class="tags"><span class="tg h">SMOTEEN</span><span class="tg h">Scikit-learn</span><span class="tg">Seaborn</span><span class="tg">Matplotlib</span><span class="tg">EDA</span></div>
+          ))}
+          {/* soft skills */}
+          <div className="edu-card" style={{borderLeftColor:C.p,gridColumn:"span 2"}}>
+            <div style={{fontSize:13,color:C.p,fontWeight:700,marginBottom:10}}>// soft_skills.cfg</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+              {softSkills.map(s=>(
+                <span key={s} style={{fontSize:12,padding:"4px 12px",border:"1px solid rgba(167,139,250,0.3)",
+                  color:C.p,borderRadius:3,background:"rgba(167,139,250,0.04)",
+                  transition:"background .15s",cursor:"default",
+                }}>{s}</span>
+              ))}
             </div>
           </div>
         </div>
       </div>
     </div>
-
-    <!-- SKILLS -->
-    <div class="sec" id="sec-skills">
-      <div class="pnl grow">
-        <div class="ph">// skills.cfg :: proficiency_matrix</div>
-        <div class="pb" style="display:flex;flex-direction:column">
-          <div class="skgrid">
-            <div class="sm">
-              <div class="smt">// languages</div>
-              <div class="sbr"><span class="sbn">Python</span><div class="sbar"><div class="sf" style="--w:90%;width:90%"></div></div><span class="sp">90%</span></div>
-              <div class="sbr"><span class="sbn">SQL</span><div class="sbar"><div class="sf" style="--w:75%;width:75%"></div></div><span class="sp">75%</span></div>
-              <div class="sbr"><span class="sbn">Java</span><div class="sbar"><div class="sf" style="--w:80%;width:80%"></div></div><span class="sp">80%</span></div>
-            </div>
-            <div class="sm">
-              <div class="smt">// ml / data science</div>
-              <div class="sbr"><span class="sbn">Scikit-learn</span><div class="sbar"><div class="sf" style="--w:85%;width:85%"></div></div><span class="sp">85%</span></div>
-              <div class="sbr"><span class="sbn">Pandas</span><div class="sbar"><div class="sf" style="--w:88%;width:88%"></div></div><span class="sp">88%</span></div>
-              <div class="sbr"><span class="sbn">NumPy</span><div class="sbar"><div class="sf" style="--w:82%;width:82%"></div></div><span class="sp">82%</span></div>
-            </div>
-            <div class="sm">
-              <div class="smt">// bi & tools</div>
-              <div class="sbr"><span class="sbn">Tableau</span><div class="sbar"><div class="sf" style="--w:70%;width:70%"></div></div><span class="sp">70%</span></div>
-              <div class="sbr"><span class="sbn">PowerBI</span><div class="sbar"><div class="sf" style="--w:68%;width:68%"></div></div><span class="sp">68%</span></div>
-              <div class="sbr"><span class="sbn">MySQL</span><div class="sbar"><div class="sf" style="--w:75%;width:75%"></div></div><span class="sp">75%</span></div>
-              <div class="sbr"><span class="sbn">Excel</span><div class="sbar"><div class="sf" style="--w:72%;width:72%"></div></div><span class="sp">72%</span></div>
-            </div>
-            <div class="sm">
-              <div class="smt">// visualization & dev</div>
-              <div class="sbr"><span class="sbn">Seaborn</span><div class="sbar"><div class="sf" style="--w:83%;width:83%"></div></div><span class="sp">83%</span></div>
-              <div class="sbr"><span class="sbn">Matplotlib</span><div class="sbar"><div class="sf" style="--w:80%;width:80%"></div></div><span class="sp">80%</span></div>
-              <div class="sbr"><span class="sbn">Git</span><div class="sbar"><div class="sf" style="--w:72%;width:72%"></div></div><span class="sp">72%</span></div>
-              <div class="sbr"><span class="sbn">VS Code</span><div class="sbar"><div class="sf" style="--w:85%;width:85%"></div></div><span class="sp">85%</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- CERTS -->
-    <div class="sec" id="sec-certs">
-      <div class="pnl grow">
-        <div class="ph">// certs.log + achievements.sys + training.db</div>
-        <div class="pb" style="display:flex;flex-direction:column">
-          <div class="cgrid">
-            <div class="ccol">
-              <div class="clbl">// certifications</div>
-              <div class="cr"><div class="cico">AI</div><div><div class="cname">AI Associate</div><div class="corg">Salesforce</div></div><span class="cbadge">VERIFIED</span></div>
-              <div class="cr"><div class="cico">ML</div><div><div class="cname">AI and ML</div><div class="corg">LinkedIn Learning</div></div><span class="cbadge">VERIFIED</span></div>
-              <div class="cr"><div class="cico">DA</div><div><div class="cname">Data Analytics</div><div class="corg">Tata / Forage</div></div><span class="cbadge">VERIFIED</span></div>
-              <div class="cr"><div class="cico">DS</div><div><div class="cname">Data Science</div><div class="corg">Oracle University</div></div><span class="cbadge">VERIFIED</span></div>
-              <div class="cr"><div class="cico">DV</div><div><div class="cname">Data Visualization</div><div class="corg">Simplilearn / SkillUP</div></div><span class="cbadge">VERIFIED</span></div>
-            </div>
-            <div class="ccol">
-              <div class="clbl">// achievements</div>
-              <div class="ac"><div class="at" style="color:var(--g)">HACKERRANK :: GOLD</div><div class="as2">Java — 350+ points</div></div>
-              <div class="ac"><div class="at" style="color:var(--c)">LEETCODE :: 120+</div><div class="as2">Problems solved in Java</div></div>
-              <div class="clbl" style="margin-top:6px">// training :: board_infinity</div>
-              <div class="trainbox">
-                <div class="trt">Data Science Trainee — Jun–Jul 2024</div>
-                <div class="trline">Covered: <em>Python, EDA, ML, Data Visualization</em></div>
-                <div class="trline">Tools: <em>SQL data extraction, Tableau dashboards</em></div>
-                <div class="trline">Focus: <em>Statistical analysis, predictive modeling</em></div>
-                <div class="trline">Output: <em>Actionable insights from large datasets</em></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- EDU -->
-    <div class="sec" id="sec-edu">
-      <div class="pnl grow">
-        <div class="ph">// edu.sys :: academic_history</div>
-        <div class="pb" style="display:flex;flex-direction:column">
-          <div class="egrid">
-            <div class="ecard" style="grid-column:span 2">
-              <div>
-                <div class="einst">Lovely Professional University — Jalandhar, Punjab</div>
-                <div class="edeg">Bachelor of Technology :: Computer Science & Engineering · CGPA 7.2 / 10.0 · Full-time enrollment</div>
-              </div>
-              <div class="eyr">AUG 2022 — PRESENT <span class="etag">ACTIVE</span></div>
-            </div>
-            <div class="ecard b">
-              <div>
-                <div class="einst">Sri Chaitanya Junior College</div>
-                <div class="edeg">Class 12 — Intermediate · Score 81%<br>Guntur, Andhra Pradesh</div>
-              </div>
-              <div class="eyr">JUN 2020 — APR 2022</div>
-            </div>
-            <div class="ecard c">
-              <div>
-                <div class="einst">ST. Ann's School — Ponnur</div>
-                <div class="edeg">Class 10 — ICSE Board<br>Guntur, Andhra Pradesh</div>
-              </div>
-              <div class="eyr">UNTIL APR 2022</div>
-            </div>
-            <div class="ecard d">
-              <div class="einst">// soft_skills.cfg</div>
-              <div class="skillpills">
-                <span class="sp2">Adaptability</span>
-                <span class="sp2">Problem-Solving</span>
-                <span class="sp2">Time Management</span>
-                <span class="sp2">Convincing Skills</span>
-                <span class="sp2">Team Collaboration</span>
-                <span class="sp2">Analytical Thinking</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<div class="fbar">
-  <div>KALYAN_OS v2.0 :: <span>ALL SYSTEMS OPERATIONAL</span></div>
-  <div>STACK: <span>Python · ML · SQL · Java · Tableau · PowerBI</span></div>
-</div>
-
-<script>
-function pad(n){return String(n).padStart(2,'0')}
-function tick(){const n=new Date();document.getElementById('clk').textContent=pad(n.getHours())+':'+pad(n.getMinutes())+':'+pad(n.getSeconds())}
-tick();setInterval(tick,1000);
-const t0=Date.now();
-setInterval(()=>{const s=Math.floor((Date.now()-t0)/1000);document.getElementById('upt').textContent=pad(Math.floor(s/60))+':'+pad(s%60)},1000);
-
-function rnd(min,max){return min+Math.floor(Math.random()*(max-min))}
-setInterval(()=>{
-  const c=rnd(52,84),r=rnd(44,72),net=rnd(72,95);
-  document.getElementById('ctop').textContent=c+'%';
-  document.getElementById('cv2').textContent=c+'%';document.getElementById('cb').style.width=c+'%';
-  document.getElementById('rv').textContent=r+'%';document.getElementById('rb').style.width=r+'%';
-  document.getElementById('nv').textContent=net+'%';document.getElementById('nb').style.width=net+'%';
-},2000);
-
-function go(id,el){
-  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
-  var sec=document.getElementById('sec-'+id);
-  if(sec)sec.classList.add('on');
-  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
-  el.classList.add('on');
+  );
 }
-document.querySelectorAll('.ni[data-sec]').forEach(function(btn){
-  btn.addEventListener('click',function(){go(this.getAttribute('data-sec'),this);});
-});
 
-const logs=[
-  ['OK','portfolio.boot','system initialized successfully'],
-  ['INFO','ml_models.db','3 projects loaded into memory'],
-  ['OK','skills.cfg','proficiency matrix compiled — 4 modules'],
-  ['OK','certs.log','5 credentials verified and indexed'],
-  ['INFO','github.api','repository Siva2979 connected'],
-  ['WARN','model_train.py','random forest fitting in progress'],
-  ['OK','sklearn','93% precision on unseen test data'],
-  ['INFO','lpu.edu','enrollment status: active — cgpa 7.2'],
-  ['OK','hackerrank','gold badge detected — java 350pts'],
-  ['INFO','pandas','dataframe operations nominal'],
-  ['OK','leetcode','120+ problems solved and indexed'],
-  ['INFO','tableau','dashboard rendering complete'],
-  ['OK','numpy','array computations ready'],
-  ['INFO','seaborn','visualization engine online'],
-  ['OK','mysql','database connection established'],
-  ['INFO','powerbi','report module loaded'],
-];
-let li=0;
-function addLog(){
-  const f=document.getElementById('lf');if(!f)return;
-  const l=logs[li%logs.length];
-  const d=document.createElement('div');d.className='ll';
-  const n=new Date();
-  const cls=l[0]==='OK'?'lok':l[0]==='WARN'?'lwrn':'linf';
-  d.innerHTML=`<span class="lts">[${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}]</span><span class="${cls}">[${l[0]}]</span> ${l[1]} :: ${l[2]}`;
-  f.appendChild(d);
-  while(f.children.length>10)f.removeChild(f.children[0]);
-  li++;
+/* ── FOOTER ── */
+function Footer() {
+  return (
+    <div style={{
+      position:"relative",zIndex:10,background:C.bg2,
+      borderTop:`1px solid ${C.b}`,padding:"0 20px",
+      display:"flex",justifyContent:"space-between",alignItems:"center",
+      fontSize:12,color:C.m,height:30,flexShrink:0,
+    }}>
+      <div>KALYAN_OS v2.0 :: <span style={{color:C.g}}>ALL SYSTEMS OPERATIONAL</span></div>
+      <div>STACK: <span style={{color:C.g}}>Python · ML · SQL · Java · Tableau · PowerBI</span></div>
+    </div>
+  );
 }
-setInterval(addLog,1400);
-for(let i=0;i<6;i++)setTimeout(addLog,i*180);
 
-function anim(id,target,suf){
-  let v=0;const step=target/50;
-  const iv=setInterval(()=>{v+=step;if(v>=target){v=target;clearInterval(iv);}document.getElementById(id).textContent=Math.floor(v)+(suf||'')},18);
-}
-setTimeout(()=>{anim('s1',3,'');anim('s2',120,'+');anim('s3',93,'');anim('s4',5,'')},250);
+/* ── ROOT APP ─────────────────────────────────────────── */
+export default function App() {
+  const [active, setActive]   = useState("home");
+  const [time, setTime]       = useState("--:--:--");
+  const [uptime, setUptime]   = useState("00:00");
+  const [cpu, setCpu]         = useState(72);
+  const [ram, setRam]         = useState(58);
+  const [net, setNet]         = useState(84);
+  const [logs, setLogs]       = useState([]);
+  const t0 = useRef(Date.now());
+  const li = useRef(0);
 
-const chars='アイカキ01クケ10コサシスセタチ';
-for(let i=0;i<8;i++){
-  const el=document.createElement('div');el.className='mc';
-  el.style.left=(i*13)+'%';
-  el.style.animationDuration=(5+Math.random()*6)+'s';
-  el.style.animationDelay=(Math.random()*5)+'s';
-  let t='';for(let j=0;j<32;j++)t+=chars[Math.floor(Math.random()*chars.length)]+'<br>';
-  el.innerHTML=t;document.getElementById('mbg').appendChild(el);
+  // clock
+  useEffect(()=>{
+    const tick=()=>{
+      const n=new Date();
+      setTime(`${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`);
+      const s=Math.floor((Date.now()-t0.current)/1000);
+      setUptime(`${pad(Math.floor(s/60))}:${pad(s%60)}`);
+    };
+    tick();
+    const id=setInterval(tick,1000);
+    return()=>clearInterval(id);
+  },[]);
+
+  // system meters
+  useEffect(()=>{
+    const id=setInterval(()=>{
+      setCpu(rnd(52,84)); setRam(rnd(44,72)); setNet(rnd(72,95));
+    },2500);
+    return()=>clearInterval(id);
+  },[]);
+
+  // logs
+  const addLog = useCallback(()=>{
+    const l = LOGS[li.current % LOGS.length];
+    const n = new Date();
+    setLogs(prev=>[...prev.slice(-11), {
+      ts: `${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`,
+      type: l[0], module: l[1], msg: l[2],
+      key: Date.now()+Math.random(),
+    }]);
+    li.current++;
+  },[]);
+
+  useEffect(()=>{
+    for(let i=0;i<6;i++) setTimeout(addLog, i*160);
+    const id=setInterval(addLog,1500);
+    return()=>clearInterval(id);
+  },[addLog]);
+
+  const sections = {home:<HomeSection logs={logs}/>, proj:<ProjectsSection/>,
+    skills:<SkillsSection/>, certs:<CertsSection/>, edu:<EduSection/>};
+
+  return (
+    <>
+      <style>{GLOBAL_CSS}</style>
+      <div className="scan-line"/>
+      <MatrixBg/>
+      <div style={{
+        position:"relative",zIndex:1,height:"100vh",
+        display:"flex",flexDirection:"column",background:C.bg,
+        color:C.t,fontFamily:"'Share Tech Mono',monospace",overflow:"hidden",
+      }}>
+        <TopBar cpu={cpu} time={time} uptime={uptime}/>
+        <div style={{display:"flex",flex:1,minHeight:0,overflow:"hidden"}}>
+          <Sidebar active={active} setActive={setActive} cpu={cpu} ram={ram} net={net}/>
+          <div style={{flex:1,display:"flex",flexDirection:"column",minHeight:0,minWidth:0,overflow:"hidden"}}>
+            {sections[active]}
+          </div>
+        </div>
+        <Footer/>
+      </div>
+    </>
+  );
 }
-</script>
